@@ -1,21 +1,57 @@
-## Context 
+# Uber Hotzone ML
 
-Uber is a ride-sharing application that started as a service for people who couldn't afford a taxi. It operates now in about 70 countries and 900 cities, and it generates over $14 billion revenue.
+Production-ready hotzone recommendation project based on Uber NYC pickup data.
 
-Uber's team found that sometimes drivers are not close enough when users need them. Uber's research shows that users accept to wait for 5-7 minutes and tend to cancel their ride if the driver takes longer to arrive.
+## Portfolio highlights
 
-Therefore, Uber's data team would like their app to be able to recommend hot-zones in New York City where the drivies should be.
+- Split from a larger monorepo into an independent deployable service repo
+- Refactored into hexagonal architecture for maintainability and clean dependency direction
+- Added deterministic CLI report generation (`--top-k` hotspots)
+- Added unit tests for hotspot aggregation and application orchestration
+- Added local and Docker smoke tests for real runtime verification
+- Added security baseline (`.env.example`, artifact ignore rules, dependency audit path)
 
+## Project layout
 
-## Goals of the project
+- `src/uber_hotzone_ml/domain/`: hotspot aggregation rules
+- `src/uber_hotzone_ml/application/`: use cases and ports
+- `src/uber_hotzone_ml/adapters/`: CSV loaders/writers
+- `src/uber_hotzone_ml/bootstrap/`: CLI wiring
+- `tests/unit/`: unit tests
+- `scripts/smoke_test.sh`: end-to-end smoke run
+- `data/raw/uber-trip-data/`: source datasets
 
- - Create an algorithm to find hot-zones in New York City where the drivers should be. The hot-zones should at least be described per day of the week.
-  
- - Visualise the results on a map
+## Quick start
 
-I chose to concentrated on data from September 2014 for performance reasons but the approach can be applied to other periods covered by the dataset in analogous manner.
+```bash
+export PYTHONPATH=src
+python3 -m unittest discover -s tests/unit -p 'test_*.py'
+./scripts/smoke_test.sh
+```
 
+## CLI usage
 
- ## References
-  
-- [Uber pickups in New York City dataset on Kaggle](https://www.kaggle.com/datasets/fivethirtyeight/uber-pickups-in-new-york-city)
+```bash
+python3 -m uber_hotzone_ml.bootstrap.cli \
+  --pickup-csv data/raw/uber-trip-data/uber-raw-data-sep14.csv \
+  --output-csv artifacts/hotzones.csv \
+  --top-k 50
+```
+
+## Docker
+
+```bash
+docker build -t uber-hotzone-ml:local .
+docker run --rm -v "$PWD/artifacts:/app/artifacts" uber-hotzone-ml:local \
+  --pickup-csv /app/data/raw/uber-trip-data/uber-raw-data-sep14.csv \
+  --output-csv /app/artifacts/hotzones.csv \
+  --top-k 50
+```
+
+## Verification commands
+
+```bash
+python3 -m unittest discover -s tests/unit -p 'test_*.py'
+./scripts/smoke_test.sh
+docker build -t uber-hotzone-ml:local .
+```
